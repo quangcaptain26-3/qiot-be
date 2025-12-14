@@ -42,6 +42,18 @@ export const config = {
     exchangeApi:
       process.env.EXCHANGE_API ||
       "https://api.exchangerate-api.com/v4/latest/USD",
+    
+    // Các đồng tiền mục tiêu để lấy tỉ giá
+    targetCurrencies: [
+      "VND", 
+      "EUR", 
+      "GBP", 
+      "JPY", 
+      "CNY", 
+      "AUD", 
+      "KRW", 
+      "SGD"
+    ],
   },
 
   // Database

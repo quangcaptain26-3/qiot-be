@@ -12,7 +12,8 @@ export class ExchangeService {
     this.db = db;
     this.mqttClient = mqttClient;
     this.exchangeModel = new ExchangeModel(db);
-    this.targetCurrencies = ["VND", "EUR", "GBP", "JPY", "CNY", "AUD"]; // Các đồng tiền cần theo dõi
+    this.targetCurrencies = config.apis.targetCurrencies; // Lấy từ config
+    this.currentLedCurrencyIndex = 0; // Để xoay vòng hiển thị trên LED
   }
 
   /**
@@ -25,9 +26,6 @@ export class ExchangeService {
 
       // Nếu có API key, sử dụng exchangerate.host hoặc exchangerate-api.com với key
       if (config.apis.exchangeApiKey) {
-        // Có thể dùng exchangerate.host với key
-        // url = `https://api.exchangerate.host/latest?access_key=${config.apis.exchangeApiKey}&base=USD`;
-        // Hoặc exchangerate-api.com với key
         url = `https://v6.exchangerate-api.com/v6/${config.apis.exchangeApiKey}/latest/USD`;
         console.log(`💱 Đang lấy dữ liệu tỉ giá từ API (với API key)...`);
       } else {
@@ -46,7 +44,6 @@ export class ExchangeService {
       let rates, baseCurrency;
 
       if (config.apis.exchangeApiKey) {
-        // exchangerate-api.com với key trả về: { result: "success", base_code: "USD", conversion_rates: {...} }
         if (data.conversion_rates) {
           rates = data.conversion_rates;
           baseCurrency = data.base_code || "USD";
@@ -57,7 +54,6 @@ export class ExchangeService {
           throw new Error("Không có dữ liệu tỉ giá từ API");
         }
       } else {
-        // Free API trả về: { base: "USD", rates: {...} }
         if (!data.rates) {
           throw new Error("Không có dữ liệu tỉ giá");
         }
@@ -92,14 +88,21 @@ export class ExchangeService {
         }
       }
 
-      // Publish tổng hợp cho LED (USD/VND là phổ biến nhất)
-      const usdVnd = results.find((r) => r.target_currency === "VND");
-      if (usdVnd && this.mqttClient) {
-        const ledText = formatExchangeForLED(usdVnd);
-        this.mqttClient.publish(config.mqtt.topics.exchangeLed, ledText, {
-          qos: 1,
-        });
-        console.log(`📤 Đã publish exchange LED text: ${ledText}`);
+      // Xoay vòng và publish tỉ giá cho LED
+      if (results.length > 0 && this.mqttClient) {
+        // Lấy tỉ giá hiện tại để hiển thị
+        const currencyToShow = results[this.currentLedCurrencyIndex];
+        
+        if (currencyToShow) {
+          const ledText = formatExchangeForLED(currencyToShow);
+          this.mqttClient.publish(config.mqtt.topics.exchangeLed, ledText, {
+            qos: 1,
+          });
+          console.log(`📤 Đã publish exchange LED text: ${ledText}`);
+        }
+
+        // Cập nhật index cho lần chạy tiếp theo
+        this.currentLedCurrencyIndex = (this.currentLedCurrencyIndex + 1) % results.length;
       }
 
       console.log(`✅ Đã lấy và lưu ${results.length} tỉ giá`);

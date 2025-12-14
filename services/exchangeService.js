@@ -123,4 +123,16 @@ export class ExchangeService {
   async getHistory(limit = 100, offset = 0) {
     return await this.exchangeModel.getHistory(limit, offset);
   }
+
+  /**
+   * Lấy dữ liệu tỉ giá trung bình
+   */
+  async getHistoryAverage(minutes, pair) {
+    const [baseCurrency, targetCurrency] = pair.split("/");
+    return await this.exchangeModel.getAverage(
+      minutes,
+      baseCurrency,
+      targetCurrency
+    );
+  }
 }

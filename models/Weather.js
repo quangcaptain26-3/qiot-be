@@ -89,6 +89,30 @@ export class WeatherModel {
   }
 
   /**
+   * Tính toán giá trị trung bình trong một khoảng thời gian
+   * @param {number} minutes - Số phút tính từ bây giờ
+   */
+  async getAverage(minutes) {
+    const sql = `
+      SELECT
+        COUNT(*) as count,
+        AVG(temperature) as avg_temperature,
+        AVG(humidity) as avg_humidity,
+        AVG(pressure) as avg_pressure
+      FROM weather
+      WHERE created_at >= datetime('now', '-' || ? || ' minutes')
+    `;
+
+    try {
+      const rows = await query(this.db, sql, [minutes]);
+      return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+      console.error("❌ Lỗi tính toán trung bình thời tiết:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Đếm tổng số bản ghi
    */
   async count() {

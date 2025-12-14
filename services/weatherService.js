@@ -138,4 +138,11 @@ export class WeatherService {
   async getHistory(limit = 100, offset = 0) {
     return await this.weatherModel.getHistory(limit, offset);
   }
+
+  /**
+   * Lấy dữ liệu thời tiết trung bình
+   */
+  async getHistoryAverage(minutes) {
+    return await this.weatherModel.getAverage(minutes);
+  }
 }

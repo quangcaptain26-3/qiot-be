@@ -86,6 +86,33 @@ export class ExchangeModel {
   }
 
   /**
+   * Tính toán giá trị trung bình trong một khoảng thời gian cho một cặp tiền tệ
+   * @param {number} minutes - Số phút tính từ bây giờ
+   * @param {string} baseCurrency - Tiền tệ cơ sở
+   * @param {string} targetCurrency - Tiền tệ đích
+   */
+  async getAverage(minutes, baseCurrency, targetCurrency) {
+    const sql = `
+      SELECT
+        COUNT(*) as count,
+        AVG(rate) as avg_rate
+      FROM exchange
+      WHERE created_at >= datetime('now', '-' || ? || ' minutes')
+        AND base_currency = ?
+        AND target_currency = ?
+    `;
+
+    try {
+      const params = [minutes, baseCurrency, targetCurrency];
+      const rows = await query(this.db, sql, params);
+      return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+      console.error("❌ Lỗi tính toán trung bình tỉ giá:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Đếm tổng số bản ghi
    */
   async count() {

@@ -129,6 +129,23 @@ app.get("/api/weather/history", async (req, res) => {
 });
 
 /**
+ * API: Lấy dữ liệu thời tiết trung bình
+ */
+app.get("/api/weather/history/average", async (req, res) => {
+  try {
+    const minutes = parseInt(req.query.minutes);
+    if (!minutes || minutes < 1) {
+      return res.status(400).json({ error: "Invalid 'minutes' parameter" });
+    }
+    const data = await weatherService.getHistoryAverage(minutes);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error("❌ Lỗi tính trung bình thời tiết:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * API: Lấy dữ liệu tỉ giá mới nhất
  */
 app.get("/api/exchange/current", async (req, res) => {
@@ -233,6 +250,27 @@ app.get("/api/exchange/history", async (req, res) => {
     res.json({ success: true, data });
   } catch (error) {
     console.error("❌ Lỗi lấy lịch sử tỉ giá:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API: Lấy dữ liệu tỉ giá trung bình
+ */
+app.get("/api/exchange/history/average", async (req, res) => {
+  try {
+    const minutes = parseInt(req.query.minutes);
+    const pair = req.query.pair;
+
+    if (!minutes || minutes < 1 || !pair) {
+      return res
+        .status(400)
+        .json({ error: "Invalid 'minutes' or 'pair' parameter" });
+    }
+    const data = await exchangeService.getHistoryAverage(minutes, pair);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error("❌ Lỗi tính trung bình tỉ giá:", error);
     res.status(500).json({ error: error.message });
   }
 });

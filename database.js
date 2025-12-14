@@ -7,31 +7,64 @@ import sqlite3 from "sqlite3";
 import { config } from "./config.js";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
+import { existsSync, mkdirSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Xử lý đường dẫn database: resolve relative path từ thư mục backend
+// Loại bỏ ./ ở đầu, và nếu path chứa "backend/", chỉ lấy tên file cuối cùng
 // Ví dụ: "./database.sqlite" -> "D:\IoT\final-iot-thing\backend\database.sqlite"
-// File SQLite sẽ được tạo tự động trong thư mục backend khi chưa tồn tại
-const dbPath = resolve(__dirname, config.database.path);
+// Ví dụ: "./backend/database.sqlite" -> "D:\IoT\final-iot-thing\backend\database.sqlite"
+let cleanPath = config.database.path.replace(/^\.\//, "");
+// Nếu path chứa "backend/", chỉ lấy phần sau "backend/"
+if (cleanPath.includes("backend/") || cleanPath.includes("backend\\")) {
+  cleanPath = cleanPath.split(/[/\\]/).pop(); // Lấy tên file cuối cùng
+}
+const dbPath = resolve(__dirname, cleanPath);
+
+// Đảm bảo thư mục chứa database tồn tại
+const dbDir = dirname(dbPath);
+if (!existsSync(dbDir)) {
+  try {
+    mkdirSync(dbDir, { recursive: true });
+    console.log(`📁 Đã tạo thư mục: ${dbDir}`);
+  } catch (err) {
+    console.error(`❌ Không thể tạo thư mục ${dbDir}:`, err.message);
+  }
+}
+
+console.log(`🔍 Database path: ${dbPath}`);
+console.log(`🔍 Database directory: ${dbDir}`);
 
 /**
  * Tạo và mở kết nối database
  */
 export function initDatabase() {
   return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath, (err) => {
-      if (err) {
-        console.error("❌ Lỗi kết nối database:", err.message);
-        reject(err);
-        return;
+    console.log(`🔍 Đang mở database tại: ${dbPath}`);
+    console.log(`🔍 __dirname: ${__dirname}`);
+    console.log(`🔍 config.database.path: ${config.database.path}`);
+
+    // Mở database với mode CREATE nếu chưa tồn tại
+    const db = new sqlite3.Database(
+      dbPath,
+      sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE,
+      (err) => {
+        if (err) {
+          console.error("❌ Lỗi kết nối database:", err.message);
+          console.error("❌ Error code:", err.code);
+          console.error("❌ Error errno:", err.errno);
+          console.error("❌ Full error:", err);
+          reject(err);
+          return;
+        }
+        console.log("✅ Đã kết nối SQLite database:", dbPath);
+        createTables(db)
+          .then(() => resolve(db))
+          .catch(reject);
       }
-      console.log("✅ Đã kết nối SQLite database:", dbPath);
-      createTables(db)
-        .then(() => resolve(db))
-        .catch(reject);
-    });
+    );
   });
 }
 

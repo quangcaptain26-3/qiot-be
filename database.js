@@ -6,14 +6,15 @@
 import sqlite3 from "sqlite3";
 import { config } from "./config.js";
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { dirname, resolve } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const dbPath = config.database.path.startsWith("./")
-  ? join(__dirname, "..", config.database.path)
-  : config.database.path;
+// Xử lý đường dẫn database: resolve relative path từ thư mục backend
+// Ví dụ: "./database.sqlite" -> "D:\IoT\final-iot-thing\backend\database.sqlite"
+// File SQLite sẽ được tạo tự động trong thư mục backend khi chưa tồn tại
+const dbPath = resolve(__dirname, config.database.path);
 
 /**
  * Tạo và mở kết nối database
